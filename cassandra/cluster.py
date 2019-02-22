@@ -2808,9 +2808,9 @@ class ControlConnection(object):
     """
 
     _SELECT_PEERS = "SELECT * FROM system.peers"
-    _SELECT_PEERS_NO_TOKENS = "SELECT peer, data_center, rack, rpc_address, release_version, schema_version FROM system.peers"
+    _SELECT_PEERS_NO_TOKENS = "SELECT host_id, peer, data_center, rack, rpc_address, release_version, schema_version FROM system.peers"
     _SELECT_LOCAL = "SELECT * FROM system.local WHERE key='local'"
-    _SELECT_LOCAL_NO_TOKENS = "SELECT cluster_name, data_center, rack, partitioner, release_version, schema_version FROM system.local WHERE key='local'"
+    _SELECT_LOCAL_NO_TOKENS = "SELECT host_id, cluster_name, data_center, rack, partitioner, release_version, schema_version FROM system.local WHERE key='local'"
 
     _SELECT_SCHEMA_PEERS = "SELECT peer, rpc_address, schema_version FROM system.peers"
     _SELECT_SCHEMA_LOCAL = "SELECT schema_version FROM system.local WHERE key='local'"
@@ -3107,6 +3107,7 @@ class ControlConnection(object):
                 datacenter = local_row.get("data_center")
                 rack = local_row.get("rack")
                 self._update_location_info(host, datacenter, rack)
+                host.host_id = local_row.get("host_id")
                 host.listen_address = local_row.get("listen_address")
                 host.broadcast_address = local_row.get("broadcast_address")
                 host.release_version = local_row.get("release_version")
@@ -3143,6 +3144,7 @@ class ControlConnection(object):
             else:
                 should_rebuild_token_map |= self._update_location_info(host, datacenter, rack)
 
+            host.host_id = row.get("host_id")
             host.broadcast_address = row.get("peer")
             host.release_version = row.get("release_version")
             host.dse_version = row.get("dse_version")

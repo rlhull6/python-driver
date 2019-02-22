@@ -85,6 +85,11 @@ class Host(object):
     release_version as queried from the control connection system tables
     """
 
+    host_id = None
+    """
+    The unique identifier of the cassandra node
+    """
+
     dse_version = None
     """
     dse_version as queried from the control connection system tables. Only populated when connecting to
@@ -104,7 +109,7 @@ class Host(object):
 
     _currently_handling_node_up = False
 
-    def __init__(self, inet_address, conviction_policy_factory, datacenter=None, rack=None):
+    def __init__(self, inet_address, conviction_policy_factory, datacenter=None, rack=None, host_id=None):
         if inet_address is None:
             raise ValueError("inet_address may not be None")
         if conviction_policy_factory is None:
@@ -112,6 +117,7 @@ class Host(object):
 
         self.address = inet_address
         self.conviction_policy = conviction_policy_factory(self)
+        self.host_id = host_id
         self.set_location_info(datacenter, rack)
         self.lock = RLock()
 
