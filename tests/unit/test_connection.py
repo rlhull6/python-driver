@@ -26,7 +26,7 @@ from cassandra import OperationTimedOut
 from cassandra.cluster import Cluster
 from cassandra.connection import (Connection, HEADER_DIRECTION_TO_CLIENT, ProtocolError,
                                   locally_supported_compressions, ConnectionHeartbeat, _Frame, Timer, TimerManager,
-                                  ConnectionException)
+                                  ConnectionException, DefaultEndPoint)
 from cassandra.marshal import uint8_pack, uint32_pack, int32_pack
 from cassandra.protocol import (write_stringmultimap, write_int, write_string,
                                 SupportedMessage, ProtocolHandler)
@@ -35,7 +35,7 @@ from cassandra.protocol import (write_stringmultimap, write_int, write_string,
 class ConnectionTest(unittest.TestCase):
 
     def make_connection(self):
-        c = Connection('1.2.3.4')
+        c = Connection(DefaultEndPoint('1.2.3.4'))
         c._socket = Mock()
         c._socket.send.side_effect = lambda x: len(x)
         return c
@@ -388,7 +388,8 @@ class ConnectionHeartbeatTest(unittest.TestCase):
         def send_msg(msg, req_id, msg_callback):
             pass
 
-        connection = Mock(spec=Connection, host='localhost',
+        # we used endpoint=X here because it's a mock and we need connection.endpoint to be set
+        connection = Mock(spec=Connection, endpoint=DefaultEndPoint('localhost'),
                           max_request_id=127,
                           lock=Lock(),
                           in_flight=0, is_idle=True,
@@ -406,7 +407,7 @@ class ConnectionHeartbeatTest(unittest.TestCase):
         exc = connection.defunct.call_args_list[0][0][0]
         self.assertIsInstance(exc, OperationTimedOut)
         self.assertEqual(exc.errors, 'Connection heartbeat timeout after 0.05 seconds')
-        self.assertEqual(exc.last_host, 'localhost')
+        self.assertEqual(exc.last_host, DefaultEndPoint('localhost'))
         holder.return_connection.assert_has_calls(
             [call(connection)] * get_holders.call_count)
 

@@ -48,9 +48,9 @@ class Host(object):
     Represents a single Cassandra node.
     """
 
-    address = None
+    endpoint = None
     """
-    The IP address of the node. This is the RPC address the driver uses when connecting to the node
+    The :class:`~.connection.EndPoint` to connect to the node.
     """
 
     broadcast_address = None
@@ -109,17 +109,22 @@ class Host(object):
 
     _currently_handling_node_up = False
 
-    def __init__(self, inet_address, conviction_policy_factory, datacenter=None, rack=None, host_id=None):
-        if inet_address is None:
-            raise ValueError("inet_address may not be None")
+    def __init__(self, endpoint, conviction_policy_factory, datacenter=None, rack=None, host_id=None):
+        if endpoint is None:
+            raise ValueError("endpoint may not be None")
         if conviction_policy_factory is None:
             raise ValueError("conviction_policy_factory may not be None")
 
-        self.address = inet_address
+        self.endpoint = endpoint
         self.conviction_policy = conviction_policy_factory(self)
         self.host_id = host_id
         self.set_location_info(datacenter, rack)
         self.lock = RLock()
+
+    @property
+    def address(self):
+        # backward compatibility
+        return self.endpoint.address
 
     @property
     def datacenter(self):
@@ -166,20 +171,20 @@ class Host(object):
             return old
 
     def __eq__(self, other):
-        return self.address == other.address
+        return self.endpoint == other.endpoint
 
     def __hash__(self):
-        return hash(self.address)
+        return hash(self.endpoint)
 
     def __lt__(self, other):
-        return self.address < other.address
+        return self.endpoint < other.endpoint
 
     def __str__(self):
-        return str(self.address)
+        return str(self.endpoint)
 
     def __repr__(self):
         dc = (" %s" % (self._datacenter,)) if self._datacenter else ""
-        return "<%s: %s%s>" % (self.__class__.__name__, self.address, dc)
+        return "<%s: %s%s>" % (self.__class__.__name__, self.endpoint, dc)
 
 
 class _ReconnectionHandler(object):
@@ -335,7 +340,7 @@ class HostConnection(object):
             return
 
         log.debug("Initializing connection for host %s", self.host)
-        self._connection = session.cluster.connection_factory(host.address)
+        self._connection = session.cluster.connection_factory(host.endpoint)
         self._keyspace = session.keyspace
         if self._keyspace:
             self._connection.set_keyspace_blocking(self._keyspace)
@@ -405,7 +410,7 @@ class HostConnection(object):
 
         log.debug("Replacing connection (%s) to %s", id(connection), self.host)
         try:
-            conn = self._session.cluster.connection_factory(self.host.address)
+            conn = self._session.cluster.connection_factory(self.host)
             if self._keyspace:
                 conn.set_keyspace_blocking(self._keyspace)
             self._connection = conn

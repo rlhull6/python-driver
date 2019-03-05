@@ -241,7 +241,10 @@ class DCAwareRoundRobinPolicy(LoadBalancingPolicy):
             self._dc_live_hosts[dc] = tuple(set(dc_hosts))
 
         if not self.local_dc:
-            self._contact_points = cluster.contact_points_resolved
+            # TODO works with endpoint
+            self._contact_points = [
+                endpoint.address
+                for endpoint in cluster.endpoints_resolved]
 
         self._position = randint(0, len(hosts) - 1) if hosts else 0
 
