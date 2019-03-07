@@ -214,7 +214,7 @@ class ConnectionTests(object):
         for i in range(5):
             try:
                 contact_point = CASSANDRA_IP
-                conn = self.klass.factory(host=contact_point, timeout=timeout, protocol_version=PROTOCOL_VERSION)
+                conn = self.klass.factory(endpoint=contact_point, timeout=timeout, protocol_version=PROTOCOL_VERSION)
                 break
             except (OperationTimedOut, NoHostAvailable, ConnectionShutdown) as e:
                 continue

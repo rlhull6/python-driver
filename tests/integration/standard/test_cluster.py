@@ -37,6 +37,7 @@ from cassandra import ConsistencyLevel
 from cassandra.query import SimpleStatement, TraceUnavailable, tuple_factory
 from cassandra.auth import PlainTextAuthProvider, SaslAuthProvider
 from cassandra import connection
+from cassandra.connection import DefaultEndPoint
 
 from tests import notwindows
 from tests.integration import use_singledc, PROTOCOL_VERSION, get_server_versions, CASSANDRA_VERSION, \
@@ -80,7 +81,7 @@ class ClusterTests(unittest.TestCase):
         cluster = Cluster(protocol_version=PROTOCOL_VERSION, load_balancing_policy=ingored_host_policy)
         session = cluster.connect()
         for host in cluster.metadata.all_hosts():
-            if str(host) == "127.0.0.1":
+            if str(host) == "127.0.0.1:9042":
                 self.assertTrue(host.is_up)
             else:
                 self.assertIsNone(host.is_up)
@@ -98,7 +99,7 @@ class ClusterTests(unittest.TestCase):
         @test_category connection
         """
         cluster = Cluster(contact_points=["localhost"], protocol_version=PROTOCOL_VERSION, connect_timeout=1)
-        self.assertTrue('127.0.0.1' in cluster.contact_points_resolved)
+        self.assertTrue(DefaultEndPoint('127.0.0.1') in cluster.endpoints_resolved)
 
     @local
     def test_host_duplication(self):
@@ -1264,7 +1265,7 @@ class TestAddressTranslation(unittest.TestCase):
         c = Cluster(address_translator=lh_ad)
         c.connect()
         for host in c.metadata.all_hosts():
-            self.assertEqual(adder_map.get(str(host)), host.broadcast_address)
+            self.assertEqual(adder_map.get(host.address), host.broadcast_address)
         c.shutdown()
 
 @local
@@ -1413,7 +1414,7 @@ class DontPrepareOnIgnoredHostsTest(unittest.TestCase):
 
         cluster.connection_factory = Mock(wraps=cluster.connection_factory)
 
-        unignored_address = '127.0.0.1'
+        unignored_address = DefaultEndPoint('127.0.0.1')
         unignored_host = next(h for h in hosts if h.address == unignored_address)
         ignored_host = next(h for h in hosts if h.address in self.ignored_addresses)
         unignored_host.is_up = ignored_host.is_up = False
