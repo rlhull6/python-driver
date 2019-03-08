@@ -3166,6 +3166,7 @@ class ControlConnection(object):
 
             host.host_id = row.get("host_id")
             host.broadcast_address = row.get("peer")
+            host.broadcast_rpc_address = self._address_from_peer_row(row)
             host.release_version = row.get("release_version")
             host.dse_version = row.get("dse_version")
             host.dse_workload = row.get("workload")
@@ -3220,8 +3221,7 @@ class ControlConnection(object):
 
     def _handle_topology_change(self, event):
         change_type = event["change_type"]
-        host = self._cluster.metadata.get_host(
-            self._cluster.address_translator.translate(event["address"][0]))
+        host = self._cluster.metadata.get_host(event["address"][0])
         log.debug(self._cluster.metadata.hosts)
         if change_type == "NEW_NODE" or change_type == "MOVED_NODE":
             if self._topology_event_refresh_window >= 0:
@@ -3232,8 +3232,7 @@ class ControlConnection(object):
 
     def _handle_status_change(self, event):
         change_type = event["change_type"]
-        host = self._cluster.metadata.get_host(
-            self._cluster.address_translator.translate(event["address"][0]))
+        host = self._cluster.metadata.get_host(event["address"][0])
         if change_type == "UP":
             delay = self._delay_for_event_type('status_change', self._status_event_refresh_window)
             if host is None:
@@ -3342,6 +3341,20 @@ class ControlConnection(object):
 
         return dict((version, list(nodes)) for version, nodes in six.iteritems(versions))
 
+    def _address_from_peer_row(self, row):
+        """
+        Parse the broadcast rpc address from a row and return it untranslated.
+        """
+        addr = None
+        if "rpc_address" in row:
+            addr = row.get("rpc_address")
+        if "native_transport_address" in row:
+            addr = row.get("native_transport_address")
+        if not addr or addr in ["0.0.0.0", "::"]:
+            addr = row.get("peer")
+
+        return addr
+    
     def _signal_error(self):
         with self._lock:
             if self._is_shutdown:

@@ -60,6 +60,11 @@ class Host(object):
     :attr:`~.Cluster.token_metadata_enabled` is ``False``.
     """
 
+    broadcast_rpc_address = None
+    """
+    The untranslated broadcast rpc address for the node (`rpc_address` or `native_address`).
+    """
+
     listen_address = None
     """
     listen address configured for the node, *if available*. This is only available in the ``system.local`` table for newer

@@ -327,15 +327,18 @@ class Metadata(object):
             return bool(self._hosts.pop(host.endpoint, False))
 
     def get_host(self, endpoint_or_address):
+        """
+        Find a host for a specific endpoint or inet address. If an inet address is passed,
+        iterate all hosts to find the Host based on the ~.hosts.Host.broadcast_rpc_address attribute.
+        """
         if not isinstance(endpoint_or_address, EndPoint):
             return self._get_host_by_address(endpoint_or_address)
 
         return self._hosts.get(endpoint_or_address)
 
     def _get_host_by_address(self, address):
-        # TODO not efficient but not supposed to be extremely used
-        for endpoint, host in six.iteritems(self._hosts):
-            if endpoint.address == address:
+        for host in six.itervalues(self._hosts):
+            if host.broadcast_rpc_address == address:
                 return host
         return None
 
