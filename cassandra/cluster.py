@@ -1289,7 +1289,7 @@ class Cluster(object):
         return self.connection_class.factory(endpoint, self.connect_timeout, *args, **kwargs)
 
     def _make_connection_factory(self, host, *args, **kwargs):
-        kwargs = self._make_connection_kwargs(host.endpoint.address, kwargs)
+        kwargs = self._make_connection_kwargs(host.endpoint, kwargs)
         return partial(self.connection_class.factory, host.endpoint, self.connect_timeout, *args, **kwargs)
 
     def _make_connection_kwargs(self, endpoint, kwargs_dict):
