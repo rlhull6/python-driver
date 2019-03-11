@@ -137,6 +137,35 @@ class EndPoint(object):
         """
         raise NotImplementedError()
 
+    @property
+    def ssl_options(self):
+        """
+        SSL options specific to this endpoint.
+        """
+        return None
+
+    def resolve(self):
+        """
+        Resolve the endpoint to an address/port. This is called
+        only on socket connection.
+        """
+        raise NotImplementedError()
+
+
+class EndPointFactory(object):
+
+    cluster = None
+
+    def configure(self, cluster):
+        self.cluster = cluster
+        return self
+
+    def create(self, row):
+        """
+        Create an EndPoint from a system.peers row.
+        """
+        raise NotImplementedError()
+
 
 @total_ordering
 class DefaultEndPoint(EndPoint):
@@ -153,6 +182,9 @@ class DefaultEndPoint(EndPoint):
     def port(self):
         return self._port
 
+    def resolve(self):
+        return self._address, self._port
+
     def __eq__(self, other):
         return isinstance(other, DefaultEndPoint) and \
                self.address == other.address and self.port == other.port
@@ -164,19 +196,10 @@ class DefaultEndPoint(EndPoint):
         return (self.address, self.port) < (other.address, other.port)
 
     def __str__(self):
-        return str("%s:%s" % (self.address, self.port))
+        return str("%s:%d" % (self.address, self.port))
 
     def __repr__(self):
         return "<%s: %s:%d>" % (self.__class__.__name__, self.address, self.port)
-
-
-class EndPointFactory(object):
-
-    cluster = None
-
-    def configure(self, cluster):
-        self.cluster = cluster
-        return self
 
 
 class DefaultEndPointFactory(EndPointFactory):
@@ -383,6 +406,10 @@ class Connection(object):
                 if not getattr(ssl, 'match_hostname', None):
                     raise RuntimeError("ssl_options specify 'check_hostname', but ssl.match_hostname is not provided. "
                                        "Patch or upgrade Python to use this option.")
+            self.ssl.options.update(self.endpoint.ssl_options or {})
+        elif self.endpoint.ssl_options:
+            self.ssl_options = self.endpoint.ssl_options
+
 
         if protocol_version >= 3:
             self.max_request_id = min(self.max_in_flight - 1, (2 ** 15) - 1)
@@ -451,7 +478,8 @@ class Connection(object):
 
     def _connect_socket(self):
         sockerr = None
-        addresses = socket.getaddrinfo(self.endpoint.address, self.endpoint.port, socket.AF_UNSPEC, socket.SOCK_STREAM)
+        inet_address, port = self.endpoint.resolve()
+        addresses = socket.getaddrinfo(inet_address, port, socket.AF_UNSPEC, socket.SOCK_STREAM)
         if not addresses:
             raise ConnectionException("getaddrinfo returned empty list for %s" % (self.endpoint,))
         for (af, socktype, proto, canonname, sockaddr) in addresses:
