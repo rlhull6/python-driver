@@ -51,7 +51,7 @@ class MockMetadata(object):
     def get_host(self, endpoint_or_address):
         if not isinstance(endpoint_or_address, EndPoint):
             for host in six.itervalues(self.hosts):
-                if host.endpoint.broadcast_rpc_address == endpoint_or_address:
+                if host.broadcast_rpc_address == endpoint_or_address:
                     return host
         else:
             return self.hosts.get(endpoint_or_address)

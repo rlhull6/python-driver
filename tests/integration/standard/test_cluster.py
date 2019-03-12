@@ -59,7 +59,7 @@ class IgnoredHostPolicy(RoundRobinPolicy):
         RoundRobinPolicy.__init__(self)
 
     def distance(self, host):
-        if(str(host) in self.ignored_hosts):
+        if(host.address in self.ignored_hosts):
             return HostDistance.IGNORED
         else:
             return HostDistance.LOCAL
@@ -1414,7 +1414,7 @@ class DontPrepareOnIgnoredHostsTest(unittest.TestCase):
 
         cluster.connection_factory = Mock(wraps=cluster.connection_factory)
 
-        unignored_address = DefaultEndPoint('127.0.0.1')
+        unignored_address = '127.0.0.1'
         unignored_host = next(h for h in hosts if h.address == unignored_address)
         ignored_host = next(h for h in hosts if h.address in self.ignored_addresses)
         unignored_host.is_up = ignored_host.is_up = False
@@ -1425,7 +1425,7 @@ class DontPrepareOnIgnoredHostsTest(unittest.TestCase):
         # the length of mock_calls will vary, but all should use the unignored
         # address
         for c in cluster.connection_factory.mock_calls:
-            self.assertEqual(call(unignored_address), c)
+            self.assertEqual(call(DefaultEndPoint(unignored_address)), c)
         cluster.shutdown()
 
 

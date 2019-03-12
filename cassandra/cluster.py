@@ -2830,7 +2830,7 @@ class ControlConnection(object):
     _SELECT_PEERS = "SELECT * FROM system.peers"
     _SELECT_PEERS_NO_TOKENS = "SELECT host_id, peer, data_center, rack, rpc_address, release_version, schema_version FROM system.peers"
     _SELECT_LOCAL = "SELECT * FROM system.local WHERE key='local'"
-    _SELECT_LOCAL_NO_TOKENS = "SELECT host_id, cluster_name, data_center, rack, partitioner, release_version, schema_version FROM system.local WHERE key='local'"
+    _SELECT_LOCAL_NO_TOKENS = "SELECT host_id, rpc_address, cluster_name, data_center, rack, partitioner, release_version, schema_version FROM system.local WHERE key='local'"
 
     _SELECT_SCHEMA_PEERS = "SELECT peer, rpc_address, schema_version FROM system.peers"
     _SELECT_SCHEMA_LOCAL = "SELECT schema_version FROM system.local WHERE key='local'"
@@ -3130,6 +3130,7 @@ class ControlConnection(object):
                 host.host_id = local_row.get("host_id")
                 host.listen_address = local_row.get("listen_address")
                 host.broadcast_address = local_row.get("broadcast_address")
+                host.broadcast_rpc_address = self._address_from_row(local_row)
                 host.release_version = local_row.get("release_version")
                 host.dse_version = local_row.get("dse_version")
                 host.dse_workload = local_row.get("workload")
@@ -3166,7 +3167,7 @@ class ControlConnection(object):
 
             host.host_id = row.get("host_id")
             host.broadcast_address = row.get("peer")
-            host.broadcast_rpc_address = self._address_from_peer_row(row)
+            host.broadcast_rpc_address = self._address_from_row(row)
             host.release_version = row.get("release_version")
             host.dse_version = row.get("dse_version")
             host.dse_workload = row.get("workload")
@@ -3341,13 +3342,13 @@ class ControlConnection(object):
 
         return dict((version, list(nodes)) for version, nodes in six.iteritems(versions))
 
-    def _address_from_peer_row(self, row):
+    def _address_from_row(self, row):
         """
         Parse the broadcast rpc address from a row and return it untranslated.
         """
         addr = None
         if "rpc_address" in row:
-            addr = row.get("rpc_address")
+            addr = row.get("rpc_address")  # peers and local
         if "native_transport_address" in row:
             addr = row.get("native_transport_address")
         if not addr or addr in ["0.0.0.0", "::"]:
