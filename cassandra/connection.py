@@ -1092,7 +1092,7 @@ class HeartbeatFuture(object):
         self.connection = connection
         self.owner = owner
         log.debug("Sending options message heartbeat on idle connection (%s) %s",
-                  id(connection), connection.host)
+                  id(connection), connection.endpoint)
         with connection.lock:
             if connection.in_flight <= connection.max_request_id:
                 connection.in_flight += 1
@@ -1153,13 +1153,13 @@ class ConnectionHeartbeat(Thread):
                                     futures.append(HeartbeatFuture(connection, owner))
                                 except Exception as e:
                                     log.warning("Failed sending heartbeat message on connection (%s) to %s",
-                                                id(connection), connection.host)
+                                                id(connection), connection.endpoint)
                                     failed_connections.append((connection, owner, e))
                             else:
                                 connection.reset_idle()
                         else:
                             log.debug("Cannot send heartbeat message on connection (%s) to %s",
-                                      id(connection), connection.host)
+                                      id(connection), connection.endpoint)
                             # make sure the owner sees this defunt/closed connection
                             owner.return_connection(connection)
                     self._raise_if_stopped()
@@ -1178,7 +1178,7 @@ class ConnectionHeartbeat(Thread):
                         connection.reset_idle()
                     except Exception as e:
                         log.warning("Heartbeat failed for connection (%s) to %s",
-                                    id(connection), connection.host)
+                                    id(connection), connection.endpoint)
                         failed_connections.append((f.connection, f.owner, e))
 
                     timeout = self._timeout - (time.time() - start_time)

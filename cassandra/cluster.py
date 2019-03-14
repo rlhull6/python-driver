@@ -1309,7 +1309,7 @@ class Cluster(object):
 
         return kwargs_dict
 
-    def protocol_downgrade(self, host_addr, previous_version):
+    def protocol_downgrade(self, host_endpoint, previous_version):
         if self._protocol_version_explicit:
             raise DriverException("ProtocolError returned from server while using explicitly set client protocol_version %d" % (previous_version,))
 
@@ -1320,7 +1320,7 @@ class Cluster(object):
 
         log.warning("Downgrading core protocol version from %d to %d for %s. "
                     "To avoid this, it is best practice to explicitly set Cluster(protocol_version) to the version supported by your cluster. "
-                    "http://datastax.github.io/python-driver/api/cassandra/cluster.html#cassandra.cluster.Cluster.protocol_version", self.protocol_version, new_version, host_addr)
+                    "http://datastax.github.io/python-driver/api/cassandra/cluster.html#cassandra.cluster.Cluster.protocol_version", self.protocol_version, new_version, host_endpoint)
         self.protocol_version = new_version
 
     def connect(self, keyspace=None, wait_for_all_pools=False):
@@ -2585,6 +2585,7 @@ class Session(object):
                 if self._protocol_version >= 3:
                     new_pool = HostConnection(host, distance, self)
                 else:
+                    # TODO remove host pool again ???
                     new_pool = HostConnectionPool(host, distance, self)
             except AuthenticationFailed as auth_exc:
                 conn_exc = ConnectionException(str(auth_exc), host=host)
@@ -2914,11 +2915,11 @@ class ControlConnection(object):
             try:
                 return self._try_connect(host)
             except ConnectionException as exc:
-                errors[host.address] = exc
+                errors[host.endpoint] = exc
                 log.warning("[control connection] Error connecting to %s:", host, exc_info=True)
                 self._cluster.signal_connection_failure(host, exc, is_host_addition=False)
             except Exception as exc:
-                errors[host.address] = exc
+                errors[host.endpoint] = exc
                 log.warning("[control connection] Error connecting to %s:", host, exc_info=True)
             if self._is_shutdown:
                 raise DriverException("[control connection] Reconnection in progress during shutdown")
@@ -2940,7 +2941,7 @@ class ControlConnection(object):
                     raise DriverException("Reconnecting during shutdown")
                 break
             except ProtocolVersionUnsupported as e:
-                self._cluster.protocol_downgrade(host.address, e.startup_version)
+                self._cluster.protocol_downgrade(host.endpoint, e.startup_version)
 
         log.debug("[control connection] Established new connection %r, "
                   "registering watchers and refreshing schema and topology",
@@ -3382,7 +3383,7 @@ class ControlConnection(object):
     def on_down(self, host):
 
         conn = self._connection
-        if conn and conn.host == host.address and \
+        if conn and conn.endpoint == host.endpoint and \
                 self._reconnection_handler is None:
             log.debug("[control connection] Control connection host (%s) is "
                       "considered down, starting reconnection", host)
@@ -3395,7 +3396,7 @@ class ControlConnection(object):
 
     def on_remove(self, host):
         c = self._connection
-        if c and c.host == host.address:
+        if c and c.endpoint == host.endpoint:
             log.debug("[control connection] Control connection host (%s) is being removed. Reconnecting", host)
             # refresh will be done on reconnect
             self.reconnect()
@@ -3663,7 +3664,7 @@ class ResponseFuture(object):
         errors = self._errors
         if not errors:
             if self.is_schema_agreed:
-                key = self._current_host.address if self._current_host else 'no host queried before timeout'
+                key = self._current_host.endpoint if self._current_host else 'no host queried before timeout'
                 errors = {key: "Client request timeout. See Session.execute[_async](timeout)"}
             else:
                 connection = self.session.cluster.control_connection._connection

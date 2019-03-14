@@ -28,7 +28,7 @@ except ImportError:
     from cassandra.util import WeakSet  # NOQA
 
 from cassandra import AuthenticationFailed
-from cassandra.connection import ConnectionException
+from cassandra.connection import ConnectionException, EndPoint, DefaultEndPoint
 from cassandra.policies import HostDistance
 
 log = logging.getLogger(__name__)
@@ -120,7 +120,7 @@ class Host(object):
         if conviction_policy_factory is None:
             raise ValueError("conviction_policy_factory may not be None")
 
-        self.endpoint = endpoint
+        self.endpoint = endpoint if isinstance(endpoint, EndPoint) else DefaultEndPoint(endpoint)
         self.conviction_policy = conviction_policy_factory(self)
         self.host_id = host_id
         self.set_location_info(datacenter, rack)
@@ -152,7 +152,7 @@ class Host(object):
 
     def set_up(self):
         if not self.is_up:
-            log.debug("Host %s is now marked up", self.address)
+            log.debug("Host %s is now marked up", self.endpoint)
         self.conviction_policy.reset()
         self.is_up = True
 
@@ -420,7 +420,7 @@ class HostConnection(object):
                 conn.set_keyspace_blocking(self._keyspace)
             self._connection = conn
         except Exception:
-            log.warning("Failed reconnecting %s. Retrying." % (self.host.address,))
+            log.warning("Failed reconnecting %s. Retrying." % (self.host.endpoint,))
             self._session.submit(self._replace, connection)
         else:
             with self._lock:
@@ -494,7 +494,7 @@ class HostConnectionPool(object):
 
         log.debug("Initializing new connection pool for host %s", self.host)
         core_conns = session.cluster.get_core_connections_per_host(host_distance)
-        self._connections = [session.cluster.connection_factory(host.address)
+        self._connections = [session.cluster.connection_factory(host.endpoint)
                              for i in range(core_conns)]
 
         self._keyspace = session.keyspace
@@ -598,7 +598,7 @@ class HostConnectionPool(object):
 
         log.debug("Going to open new connection to host %s", self.host)
         try:
-            conn = self._session.cluster.connection_factory(self.host.address)
+            conn = self._session.cluster.connection_factory(self.host.endpoint)
             if self._keyspace:
                 conn.set_keyspace_blocking(self._session.keyspace)
             self._next_trash_allowed_at = time.time() + _MIN_TRASH_INTERVAL
