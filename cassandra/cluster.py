@@ -802,9 +802,9 @@ class Cluster(object):
 
     endpoint_factory = None
     """
-    The :class:`dse.hosts.EndPointFactory` class to use internal to create the endpoint
-    information to connect to a node. You can ignore this unless you need to
-    to use a special connection mechanisms. The default is :class:`dse.hosts.DefaultEndPointFactory.`
+    An :class:`~.connection.EndPointFactory` instance to use internally when creating
+    a socket connection to a node. You can ignore this unless you need a special
+    connection mechanism.
     """
 
     profile_manager = None

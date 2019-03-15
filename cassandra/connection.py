@@ -157,6 +157,9 @@ class EndPointFactory(object):
     cluster = None
 
     def configure(self, cluster):
+        """
+        This is called by the cluster during its initialization.
+        """
         self.cluster = cluster
         return self
 
@@ -169,6 +172,9 @@ class EndPointFactory(object):
 
 @total_ordering
 class DefaultEndPoint(EndPoint):
+    """
+    Default EndPoint implementation, basically just an address and port.
+    """
 
     def __init__(self, address, port=9042):
         self._address = address
@@ -238,7 +244,6 @@ class _Frame(object):
 
     def __str__(self):
         return "ver({0}); flags({1:04b}); stream({2}); op({3}); offset({4}); len({5})".format(self.version, self.flags, self.stream, self.opcode, self.body_offset, self.end_pos - self.body_offset)
-
 
 
 NONBLOCKING = (errno.EAGAIN, errno.EWOULDBLOCK)

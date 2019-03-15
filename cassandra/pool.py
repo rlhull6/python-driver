@@ -62,7 +62,7 @@ class Host(object):
 
     broadcast_rpc_address = None
     """
-    The untranslated broadcast rpc address for the node (`rpc_address` or `native_address`).
+    The broadcast rpc address of the node (`native_address` or `rpc_address`).
     """
 
     listen_address = None

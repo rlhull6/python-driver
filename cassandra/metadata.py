@@ -328,8 +328,8 @@ class Metadata(object):
 
     def get_host(self, endpoint_or_address):
         """
-        Find a host for a specific endpoint or inet address. If an inet address is passed,
-        iterate all hosts to find the Host based on the ~.hosts.Host.broadcast_rpc_address attribute.
+        Find a host in the metadata for a specific endpoint. If a string inet address is passed,
+        iterate all hosts to match the :attr:`~.pool.Host.broadcast_rpc_address` attribute.
         """
         if not isinstance(endpoint_or_address, EndPoint):
             return self._get_host_by_address(endpoint_or_address)
